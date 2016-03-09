@@ -1,6 +1,7 @@
 package com.fydp.retailxp.client;
 
 import android.content.Context;
+import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -49,6 +50,7 @@ public class ShoeAdapter extends BaseAdapter {
 
         if (convertView == null) {
             // if it's not recycled, initialize some attributes
+
             //imageView = new ImageView(mContext);
             shoeDisplayInfo = new LinearLayout(mContext);
             shoeDisplayInfo.setOrientation(LinearLayout.VERTICAL);
@@ -69,13 +71,13 @@ public class ShoeAdapter extends BaseAdapter {
             But I'm not sure if I can actually load these resources on the fly like that...
             I guess it should load from an URL resource in the end
              */
-            shoeName.setText("Test");
-            shoeName.setTextSize(20);
+            shoeName.setText(mShoeNames[position]);
+            shoeName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
 
             // Set up shoe price
             shoePrice = new TextView(mContext);
             shoePrice.setText("$100");
-            shoeName.setTextSize(20);
+            shoeName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
 
             shoeDisplayInfo.addView(shoeImage);
             shoeDisplayInfo.addView(shoeName);
@@ -98,6 +100,14 @@ public class ShoeAdapter extends BaseAdapter {
             R.drawable.jordan_phase_23_ii_mens, R.drawable.nike_air_force_1_low_mens,
             R.drawable.nike_air_force_1_mid_mens, R.drawable.nike_prestige_iv_mens,
             R.drawable.nike_tri_fusion_run_mens, R.drawable.timberland_6_waterproof_premium_boots_mens
+    };
+
+    private String[] mShoeNames = {
+            "Adidas 3 Series", "Adidas Originals ZX Flux Print",
+            "Jordan Eclipse", "Jordan Flight 23",
+            "Jordan Phase 23 II", "Nike Air Force 1 Low",
+            "Nike Air Force 1 Mid", "Nike Prestige IV",
+            "Nike Tri-Fusion Run", "Timberland 6 Waterproof Premium Boots"
     };
 }
 
