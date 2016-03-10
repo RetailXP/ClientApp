@@ -3,8 +3,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.fydp.retailxp.client.MainDisplay">
     <item
-        android:id="@+id/action_settings"
+        android:id="@+id/action_admin"
         android:orderInCategory="100"
-        android:title="@string/action_settings"
+        android:title="@string/action_admin"
+        android:checked="false"
+        android:checkable="true"
         app:showAsAction="never" />
 </menu>
