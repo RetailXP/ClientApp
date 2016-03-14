@@ -8,18 +8,21 @@ public class Shoe {
     private String name;
     private double price;
     private Integer imageRes;
+    private String selection;
 
     // Constructors
     public Shoe() {
         this.name = "";
         this.price = 0;
         this.imageRes = null;
+        this.selection = "";
     }
 
-    public Shoe(String name, double price, Integer imageRes) {
+    public Shoe(String name, double price, Integer imageRes, String selection) {
         this.name = name;
         this.price = price;
         this.imageRes = imageRes;
+        this.selection = selection;
     }
 
     // Accessors
@@ -31,4 +34,7 @@ public class Shoe {
 
     public Integer getImageRes() { return this.imageRes; }
     public void setImageRes(Integer imageRes) { this.imageRes = imageRes; }
+
+    public String getSelection() { return this.selection; }
+    public void setSelection(String selection) { this.selection = selection; }
 }

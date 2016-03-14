@@ -205,7 +205,6 @@
         android:paddingTop="@dimen/activity_land_horizontal_margin"
         android:paddingBottom="@dimen/activity_land_horizontal_margin"
 
-        android:text="20"
         android:textSize="20sp"
         android:textStyle="bold"/>
 

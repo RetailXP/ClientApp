@@ -38,6 +38,7 @@ public final class SocketConnection {
     // Required for the Toast messages
     private static Context mContext;
     public static void setContext(Context c) { mContext = c; }
+    private static String errorMsg;
 
     private SocketConnection() {
         socket = null;
@@ -67,7 +68,9 @@ public final class SocketConnection {
                 outputErrorMessage(mContext, "Execution Exception: Computation threw exception");
                 e.printStackTrace();*/
             } catch (IOException e) {
-                outputErrorMessage(mContext, "IOException: Error getting IO streams");
+                errorMsg = "IOException: Error getting IO streams";
+                //Toast.makeText(mContext, errorMsg, Toast.LENGTH_SHORT);
+                System.out.println(errorMsg);
                 e.printStackTrace();
             }
         }
@@ -98,13 +101,15 @@ public final class SocketConnection {
                 System.out.println("Socket initialized");
             } catch (UnknownHostException e1) {
                 errorMsg = "UnknownHostException: Couldn't connect to server. Socket not initialized.";
+                //Toast.makeText(mContext, errorMsg, Toast.LENGTH_SHORT);
+                System.out.println(errorMsg);
                 this.exception = e1;
-                outputErrorMessage(mContext, errorMsg);
                 this.exception.printStackTrace();
             } catch (IOException e2) {
                 errorMsg = "IOException: Couldn't connect to server. Socket not initialized.";
+                //Toast.makeText(mContext, errorMsg, Toast.LENGTH_SHORT);
+                System.out.println(errorMsg);
                 this.exception = e2;
-                outputErrorMessage(mContext, errorMsg);
                 this.exception.printStackTrace();
             }
             //return null;
@@ -152,8 +157,9 @@ public final class SocketConnection {
                 }
             } catch (IOException e) {
                 errorMsg = "IOException: Error when listening on socket.";
+                //Toast.makeText(mContext, errorMsg, Toast.LENGTH_SHORT);
+                System.out.println(errorMsg);
                 this.exception = e;
-                outputErrorMessage(mContext, errorMsg);
                 this.exception.printStackTrace();
             }
             //return null;

@@ -51,8 +51,9 @@ public class MainDisplay extends AppCompatActivity {
     public final static String SHOE_NAME = "com.fydp.retailxp.client.SHOE_NAME";
     public final static String SHOE_PRICE = "com.fydp.retailxp.client.SHOE_PRICE";
     public final static String SHOE_IMG = "com.fydp.retailxp.client.SHOE_IMG";
+    public final static String SHOE_SELECTION = "com.fydp.retailxp.client.SHOE_SELECTION";
 
-    private static boolean adminMode = false;
+    public static boolean ADMIN_MODE = false;
 
     // Socket is static so we don't keep recreating the connection
     // It won't work otherwise
@@ -71,7 +72,6 @@ public class MainDisplay extends AppCompatActivity {
         setContentView(R.layout.activity_main_display);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        //toolbar.setNavigationIcon(R.drawable.ic_menu_white_18dp);
 
         // Have to create socket connections on a separate thread
         // Will crash if attempted on the main thread (NetworkMainThreadException)
@@ -79,7 +79,6 @@ public class MainDisplay extends AppCompatActivity {
 
         SocketConnection.setContext(getApplicationContext());
         SocketConnection.startSocketConnection();
-
 
         /*
         if (socketConn == null) {
@@ -111,10 +110,9 @@ public class MainDisplay extends AppCompatActivity {
             }
         });
 
-        // GridView Setup for MainDisplay
         // TODO: Fix issue with the cell stretching
-        // TODO: Call server to grab list of shoe barcodes
 
+        // GridView Setup for MainDisplay
         JSONObject jsonrequest = new JSONObject();
         try {
             jsonrequest.put("Request", "MainDisplay");
@@ -136,6 +134,7 @@ public class MainDisplay extends AppCompatActivity {
             // Wait for 10 seconds to get data from the server
             //String setMainDisplayData = messageBuffer.poll(5, TimeUnit.SECONDS);
             //while (messageBuffer.peek() == null) { Thread.yield(); }
+            // TODO: Consider emptying the message buffer before taking since we're blindly assuming that order is being maintained
             String jsonMainDisplay = SocketConnection.messageBuffer.take();
             System.out.println("MainDisplay JSON: " + jsonMainDisplay);
 
@@ -151,7 +150,8 @@ public class MainDisplay extends AppCompatActivity {
                     String name = ((Shoe)parent.getAdapter().getItem(position)).getName();
                     double price = ((Shoe)parent.getAdapter().getItem(position)).getPrice();
                     Integer imgID = ((Shoe)parent.getAdapter().getItem(position)).getImageRes();
-                    seeDetailedShoeDisplay(name, price, imgID);
+                    String selection = ((Shoe)parent.getAdapter().getItem(position)).getSelection();
+                    seeDetailedShoeDisplay(name, price, imgID, selection);
                 }
             });
 
@@ -165,6 +165,15 @@ public class MainDisplay extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main_display, menu);
+        if (ADMIN_MODE) {
+            for (int i = 0; i < menu.size(); i++) {
+                MenuItem item = menu.getItem(i);
+                if (item.getItemId() == R.id.action_admin) {
+                    item.setChecked(true);
+                }
+            }
+        }
+
         return true;
     }
 
@@ -178,9 +187,9 @@ public class MainDisplay extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_admin) {
-            if (adminMode) {
+            if (ADMIN_MODE) {
                 item.setChecked(false);
-                adminMode = false;
+                ADMIN_MODE = false;
                 Toast.makeText(MainDisplay.this,"Administrator mode off.",Toast.LENGTH_SHORT).show();
             } else {
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -205,7 +214,7 @@ public class MainDisplay extends AppCompatActivity {
                             if (sb.toString().equals(getString(R.string.admin_pw_hash))) {
                                 if (item != null) {
                                     item.setChecked(true);
-                                    adminMode = true;
+                                    ADMIN_MODE = true;
                                     Toast.makeText(MainDisplay.this,"Administrator mode on.",Toast.LENGTH_SHORT).show();
                                 } else {
                                     System.out.println("Menu item is null for some reason.");
@@ -241,11 +250,12 @@ public class MainDisplay extends AppCompatActivity {
      * For now, the individual product details are each their own parameter.
      * However this should be a single object in the future, received from the database.
      */
-    public void seeDetailedShoeDisplay(String name, double price, Integer imageRes) {
+    public void seeDetailedShoeDisplay(String name, double price, Integer imageRes, String selection) {
         Intent intent = new Intent(this, DetailedShoeDisplay.class);
         intent.putExtra(SHOE_NAME, name);
         intent.putExtra(SHOE_PRICE, price);
         intent.putExtra(SHOE_IMG, imageRes);
+        intent.putExtra(SHOE_SELECTION, selection);
 
         /*
         TODO: Get detailed shoe data (JSON format), wrap in object, pass to new activity

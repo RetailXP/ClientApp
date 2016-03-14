@@ -42,7 +42,8 @@ public class ShoeAdapter extends BaseAdapter {
                     JSONObject jsonshoe = jsonshoeList.getJSONObject(i);
                     String name = jsonshoe.getString("Name");
                     double price = jsonshoe.getDouble("Price");
-                    mShoeList.add(i, new Shoe(name, price, mThumbIds[i]));
+                    String selection = jsonshoe.getString("Selection");
+                    mShoeList.add(i, new Shoe(name, price, mThumbIds[i], selection));
                 }
             } else {
                 System.out.println("Was expecting a MainDisplay type message");
@@ -116,13 +117,13 @@ public class ShoeAdapter extends BaseAdapter {
              */
             //shoeName.setText(mShoeNames[position]);
             shoeName.setText(shoe.getName());
-            shoeName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+            shoeName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
 
             // Set up shoe price
             shoePrice = new TextView(mContext);
             //shoePrice.setText("$100");
             shoePrice.setText(String.valueOf(shoe.getPrice()));
-            shoeName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
+            shoeName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
 
             shoeDisplayInfo.addView(shoeImage);
             shoeDisplayInfo.addView(shoeName);
