@@ -1,6 +1,7 @@
 package com.fydp.retailxp.client;
 
 import android.content.Context;
+import android.util.JsonReader;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,26 +11,62 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.JSONTokener;
+
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by dmok on 20/01/16.
  */
 public class ShoeAdapter extends BaseAdapter {
     private Context mContext;
 
-    public ShoeAdapter(Context c) {
+    public ShoeAdapter(Context c, String json) {
         mContext = c;
+
+        // Populate shoe adapter from JSON retrieved from the server.
+        try {
+            JSONObject msg = (JSONObject) new JSONTokener(json).nextValue();
+            String msgType = msg.getString("Type");
+            // Check if the message type is correct
+            if (msgType.equals("MainDisplay")) {
+                // Read in the JSON
+                JSONArray jsonshoeList = msg.getJSONArray("Shoes");
+                // Clear current shoe list and start filling it up with new shoes
+                mShoeList = new ArrayList<>();
+                for (int i = 0; i < jsonshoeList.length(); i++) {
+                    JSONObject jsonshoe = jsonshoeList.getJSONObject(i);
+                    String name = jsonshoe.getString("Name");
+                    double price = jsonshoe.getDouble("Price");
+                    mShoeList.add(i, new Shoe(name, price, mThumbIds[i]));
+                }
+            } else {
+                System.out.println("Was expecting a MainDisplay type message");
+            }
+        } catch (JSONException e) {
+            System.out.println("JSON: Error reading GridView JSON data");
+            e.printStackTrace();
+        }
     }
 
+    // Important. This tells the Adapter how many views to load into view.
+    // App crashes if we try to grab more items from the list than we actually have.
     public int getCount() {
-        return mThumbIds.length;
+        return mShoeList.size();
     }
 
-    public Object getItem(int position) {
-        return mThumbIds[position];
-    }
+    public Object getItem(int position) { return mShoeList.get(position); }
 
     public long getItemId(int position) {
         return 0;
+    }
+
+    public ArrayList<Shoe> getmShoeList(){
+        return mShoeList;
     }
 
     // create a new ImageView for each item referenced by the Adapter
@@ -39,6 +76,11 @@ public class ShoeAdapter extends BaseAdapter {
         * Instead of returning just an ImageView, we return an entire LinearLayout.
         * */
 
+        // Get the shoe
+        System.out.println(position);
+        Shoe shoe = mShoeList.get(position);
+
+        // Display view objects
         // Overall shoe display object
         LinearLayout shoeDisplayInfo;
         // Picture of the shoe
@@ -61,7 +103,8 @@ public class ShoeAdapter extends BaseAdapter {
             shoeImage.setAdjustViewBounds(true);
             shoeImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
             shoeImage.setPadding(8, 8, 8, 8);
-            shoeImage.setImageResource(mThumbIds[position]);
+            //shoeImage.setImageResource(mThumbIds[position]);
+            shoeImage.setImageResource(shoe.getImageRes());
 
             // Set up shoe name
             shoeName = new TextView(mContext);
@@ -71,13 +114,15 @@ public class ShoeAdapter extends BaseAdapter {
             But I'm not sure if I can actually load these resources on the fly like that...
             I guess it should load from an URL resource in the end
              */
-            shoeName.setText(mShoeNames[position]);
-            shoeName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+            //shoeName.setText(mShoeNames[position]);
+            shoeName.setText(shoe.getName());
+            shoeName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
 
             // Set up shoe price
             shoePrice = new TextView(mContext);
-            shoePrice.setText("$100");
-            shoeName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+            //shoePrice.setText("$100");
+            shoePrice.setText(String.valueOf(shoe.getPrice()));
+            shoeName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 10);
 
             shoeDisplayInfo.addView(shoeImage);
             shoeDisplayInfo.addView(shoeName);
@@ -92,6 +137,10 @@ public class ShoeAdapter extends BaseAdapter {
         //return imageView;
         return shoeDisplayInfo;
     }
+
+    // **************************** Custom Functions ****************************
+
+    private ArrayList<Shoe> mShoeList;
 
     // references to our images
     private Integer[] mThumbIds = {

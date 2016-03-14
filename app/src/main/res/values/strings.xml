@@ -6,7 +6,7 @@
     <string name="admin_dialog_text">Enter password:</string>
     <string name="admin_dialog_enter">Enter</string>
     <string name="admin_dialog_cancel">Cancel</string>
-    <string name="admin_pw_hash">96ea2e2e5a9ee7c5e1e3ba9f7368c673</string>
+    <string name="admin_pw_hash">17e6413b86c551fc9e05d19755d07c13</string>
 
     <string name="title_activity_detailed_shoe_display">DetailedShoeDisplay</string>
     <string name="selection">Select your preferences</string>

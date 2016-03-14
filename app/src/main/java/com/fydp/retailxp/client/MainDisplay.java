@@ -26,6 +26,11 @@ import android.widget.Toast;
 
 // All of this stuff is basically to do RPi-Android Communication
 // http://examples.javacodegeeks.com/android/core/socket-core/android-socket-example/
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.JSONTokener;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -35,23 +40,30 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
-public class MainDisplay extends AppCompatActivity implements AdminLoginDialog.AdminLoginDialogListener {
+public class MainDisplay extends AppCompatActivity {
 
-    public final static String EXTRA_MESSAGE = "com.fydp.retailxp.client.MESSAGE";
+    public final static String SHOE_NAME = "com.fydp.retailxp.client.SHOE_NAME";
+    public final static String SHOE_PRICE = "com.fydp.retailxp.client.SHOE_PRICE";
+    public final static String SHOE_IMG = "com.fydp.retailxp.client.SHOE_IMG";
 
-    private static Boolean adminMode = false;
+    private static boolean adminMode = false;
 
     // Socket is static so we don't keep recreating the connection
     // It won't work otherwise
+    /*
     private static SocketConnection socketConn;
     private static final int SERVERPORT = 5005;
     private static final String SERVER_IP = "10.0.0.200";
 
     public static BlockingQueue<String> messageBuffer = new LinkedBlockingQueue<String>();
+    private static boolean LISTENING = false;
+    */
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,6 +76,12 @@ public class MainDisplay extends AppCompatActivity implements AdminLoginDialog.A
         // Have to create socket connections on a separate thread
         // Will crash if attempted on the main thread (NetworkMainThreadException)
         // Create a socket connection only if it doesn't already exist
+
+        SocketConnection.setContext(getApplicationContext());
+        SocketConnection.startSocketConnection();
+
+
+        /*
         if (socketConn == null) {
             try {
                 System.out.println("Starting a new SocketTask");
@@ -79,8 +97,10 @@ public class MainDisplay extends AppCompatActivity implements AdminLoginDialog.A
                 e.printStackTrace();
             }
         }
+        */
         // Make sure that a socket connection is made before continuing
         // while (socketConn.getSocket() == null) { Thread.yield(); }
+        // while (SocketConnection.isLISTENING() == false) { Thread.yield(); }
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -91,18 +111,54 @@ public class MainDisplay extends AppCompatActivity implements AdminLoginDialog.A
             }
         });
 
+        // GridView Setup for MainDisplay
         // TODO: Fix issue with the cell stretching
         // TODO: Call server to grab list of shoe barcodes
-        GridView gridview = (GridView) findViewById(R.id.gridview);
-        gridview.setAdapter(new ShoeAdapter(this));
 
-        gridview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            public void onItemClick(AdapterView<?> parent, View v,
-                                    int position, long id) {
-                //Toast.makeText(MainDisplay.this, "" + parent.getAdapter().getItem(position).toString(), Toast.LENGTH_SHORT).show();
-                seeDetailedShoeDisplay();
+        JSONObject jsonrequest = new JSONObject();
+        try {
+            jsonrequest.put("Request", "MainDisplay");
+        } catch (JSONException e) {
+            System.out.println("JSONException: Error creating MainDisplay request JSON");
+            e.printStackTrace();
+        }
+        SocketConnection.writeToSocket(jsonrequest.toString());
+        /*
+        if (socketConn != null) {
+            if (socketConn.getSocket() != null) {
+                socketConn.writeToSocket(getMainDisplayData);
+                System.out.println("Sent message: " + getMainDisplayData);
             }
-        });
+        }
+        */
+
+        try {
+            // Wait for 10 seconds to get data from the server
+            //String setMainDisplayData = messageBuffer.poll(5, TimeUnit.SECONDS);
+            //while (messageBuffer.peek() == null) { Thread.yield(); }
+            String jsonMainDisplay = SocketConnection.messageBuffer.take();
+            System.out.println("MainDisplay JSON: " + jsonMainDisplay);
+
+            // Initialize GridView
+            GridView gridview = (GridView) findViewById(R.id.gridview);
+            gridview.setAdapter(new ShoeAdapter(this, jsonMainDisplay));
+            gridview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                public void onItemClick(AdapterView<?> parent, View v,
+                                        int position, long id) {
+                    //Toast.makeText(MainDisplay.this, "" + parent.getAdapter().getItem(position).toString(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainDisplay.this, position + " " + ((Shoe)parent.getAdapter().getItem(position)).getName(), Toast.LENGTH_SHORT).show();
+
+                    String name = ((Shoe)parent.getAdapter().getItem(position)).getName();
+                    double price = ((Shoe)parent.getAdapter().getItem(position)).getPrice();
+                    Integer imgID = ((Shoe)parent.getAdapter().getItem(position)).getImageRes();
+                    seeDetailedShoeDisplay(name, price, imgID);
+                }
+            });
+
+        } catch (InterruptedException e) {
+            System.out.println("InterruptedException: GridView data couldn't be retrieved");
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -141,15 +197,12 @@ public class MainDisplay extends AppCompatActivity implements AdminLoginDialog.A
                             MessageDigest md = MessageDigest.getInstance("MD5");
                             String password = passwordField.getText().toString();
                             md.update(password.getBytes());
-                            byte[] passworddigest = md.digest();
+                            byte[] passwordDigest = md.digest();
                             StringBuffer sb = new StringBuffer();
-                            for (byte b : passworddigest) {
+                            for (byte b : passwordDigest) {
                                 sb.append(String.format("%02x", b & 0xff));
                             }
-                            System.out.println("PW Hash: " + getString(R.string.admin_pw_hash));
-                            System.out.println("Entered Hash: " + sb.toString());
                             if (sb.toString().equals(getString(R.string.admin_pw_hash))) {
-                                System.out.println("Authenticating");
                                 if (item != null) {
                                     item.setChecked(true);
                                     adminMode = true;
@@ -188,34 +241,27 @@ public class MainDisplay extends AppCompatActivity implements AdminLoginDialog.A
      * For now, the individual product details are each their own parameter.
      * However this should be a single object in the future, received from the database.
      */
-    public void seeDetailedShoeDisplay() {
+    public void seeDetailedShoeDisplay(String name, double price, Integer imageRes) {
         Intent intent = new Intent(this, DetailedShoeDisplay.class);
-        String message = "Preliminary Test";
-        intent.putExtra(EXTRA_MESSAGE, message);
+        intent.putExtra(SHOE_NAME, name);
+        intent.putExtra(SHOE_PRICE, price);
+        intent.putExtra(SHOE_IMG, imageRes);
 
         /*
         TODO: Get detailed shoe data (JSON format), wrap in object, pass to new activity
         */
 
-        String str = "test";
+        /*
+        String str = "DetailedShoe";
         if (socketConn != null) {
             if (socketConn.getSocket() != null) {
                 socketConn.writeToSocket(str);
                 System.out.println("Sent message: " + str);
             }
         }
+        */
 
         startActivity(intent);
-    }
-
-    @Override
-    public void onAdminLoginDialogPositiveClick(DialogFragment dialog) {
-        // User touched the dialog's positive button
-    }
-
-    @Override
-    public void onAdminLoginDialogNegativeClick(DialogFragment dialog) {
-        // User touched the dialog's negative button
     }
 
     /**
@@ -223,6 +269,7 @@ public class MainDisplay extends AppCompatActivity implements AdminLoginDialog.A
      * Once instantiated the socket automatically begins listening on its port.
      * Only one of these should be created (port 5005).
      */
+    /*
     private class SocketConnection {
         private Socket socket;
         private PrintWriter out;
@@ -236,6 +283,7 @@ public class MainDisplay extends AppCompatActivity implements AdminLoginDialog.A
                 in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 // Start listening on the port
                 new SocketListenerTask().execute(in);
+                //Thread.yield();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -248,68 +296,5 @@ public class MainDisplay extends AppCompatActivity implements AdminLoginDialog.A
             out.println(str);
         }
     }
-
-    /**
-     * Worker task to initialize the socket connection
-     * Returns the created socket
-     */
-    private class InitializeSocketTask extends AsyncTask<Void, Void, Socket> {
-        private Exception exception;
-        private Socket socket = null;
-
-        protected Socket doInBackground(Void... junk) {
-            try {
-                System.out.println("Enter SocketTask");
-                System.out.println("Trying to initialize socket");
-                InetAddress serverAddr = InetAddress.getByName(SERVER_IP);
-                this.socket = new Socket(serverAddr, SERVERPORT);
-                System.out.println("Socket initialized");
-            } catch (UnknownHostException e1) {
-                System.out.println("UnknownHostException");
-                this.exception = e1;
-            } catch (IOException e2) {
-                System.out.println("IOException");
-                this.exception = e2;
-            }
-            return this.socket;
-        }
-
-        protected Void onPostExecute() {
-            this.exception.printStackTrace();
-            return null;
-        }
-    }
-
-    /**
-     * Worker task to listen on a port
-     * Waits for incoming messages and adds them to a global message buffer.
-     */
-    private class SocketListenerTask extends AsyncTask<BufferedReader, Void, Void> {
-        private Exception exception;
-        private String msg;
-
-        protected Void doInBackground(BufferedReader... in) {
-            try {
-                System.out.println("Enter SocketListener");
-                System.out.println("Start listening for incoming messages");
-                while (true) {
-                    msg = in[0].readLine();
-                    if (msg == null) {
-                        break;
-                    }
-                    messageBuffer.add(msg);
-                    System.out.println("Received message: " + msg);
-                }
-            } catch (IOException e) {
-                System.out.println("IOException");
-                this.exception = e;
-            }
-            return null;
-        }
-
-        protected Void onPostExecute() {
-            this.exception.printStackTrace();
-            return null;
-        }
-    }
+    */
 }
