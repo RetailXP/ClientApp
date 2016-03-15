@@ -101,6 +101,7 @@ public class MainDisplay extends AppCompatActivity {
         // while (socketConn.getSocket() == null) { Thread.yield(); }
         // while (SocketConnection.isLISTENING() == false) { Thread.yield(); }
 
+        /*
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -109,6 +110,7 @@ public class MainDisplay extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
+        */
 
         // TODO: Fix issue with the cell stretching
 
@@ -135,6 +137,7 @@ public class MainDisplay extends AppCompatActivity {
             //String setMainDisplayData = messageBuffer.poll(5, TimeUnit.SECONDS);
             //while (messageBuffer.peek() == null) { Thread.yield(); }
             // TODO: Consider emptying the message buffer before taking since we're blindly assuming that order is being maintained
+            //SocketConnection.messageBuffer.clear();
             String jsonMainDisplay = SocketConnection.messageBuffer.take();
             System.out.println("MainDisplay JSON: " + jsonMainDisplay);
 
@@ -257,54 +260,6 @@ public class MainDisplay extends AppCompatActivity {
         intent.putExtra(SHOE_IMG, imageRes);
         intent.putExtra(SHOE_SELECTION, selection);
 
-        /*
-        TODO: Get detailed shoe data (JSON format), wrap in object, pass to new activity
-        */
-
-        /*
-        String str = "DetailedShoe";
-        if (socketConn != null) {
-            if (socketConn.getSocket() != null) {
-                socketConn.writeToSocket(str);
-                System.out.println("Sent message: " + str);
-            }
-        }
-        */
-
         startActivity(intent);
     }
-
-    /**
-     * Object that contains the socket and its input and output streams.
-     * Once instantiated the socket automatically begins listening on its port.
-     * Only one of these should be created (port 5005).
-     */
-    /*
-    private class SocketConnection {
-        private Socket socket;
-        private PrintWriter out;
-        private BufferedReader in;
-
-        public SocketConnection(Socket socket) {
-            try {
-                // Initialize members
-                this.socket = socket;
-                out = new PrintWriter(socket.getOutputStream(), true);
-                in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                // Start listening on the port
-                new SocketListenerTask().execute(in);
-                //Thread.yield();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        public Socket getSocket() { return this.socket; }
-        public void writeToSocket(String str) {
-            // Necessary to use println() instead of print()
-            // The message won't be properly terminated without an endline
-            out.println(str);
-        }
-    }
-    */
 }

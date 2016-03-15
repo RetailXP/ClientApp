@@ -20,6 +20,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
@@ -32,7 +33,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class DetailedShoeDisplay extends AppCompatActivity {
-    // TODO: Grab selection from MainDisplay intent
     private String selection;
     private String currentBarcode;
     private String currentSize;
@@ -57,6 +57,7 @@ public class DetailedShoeDisplay extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        /*
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -65,10 +66,13 @@ public class DetailedShoeDisplay extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
+        */
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         // Retrieve basic shoe information from MainDisplay
         Intent intent = getIntent();
+
+        selection = intent.getStringExtra(MainDisplay.SHOE_SELECTION);
 
         TextView nameView = (TextView) findViewById(R.id.nameDetail);
         nameView.setText(intent.getStringExtra(MainDisplay.SHOE_NAME));
@@ -83,12 +87,14 @@ public class DetailedShoeDisplay extends AppCompatActivity {
         availabilityText = (TextView) findViewById(R.id.availabilityCount);
         availabilityText.setText("0");
 
+        // Set up the spinner objects
+        spinnerSetup();
+
         // Handle administrator mode
         Button orderButton = (Button) findViewById(R.id.orderButton);
         orderButton.setText(MainDisplay.ADMIN_MODE ? "Restock" : "Order");
 
         // Build JSON request
-        String selection = "SampleSelection";
         JSONObject jsonrequest = new JSONObject();
         try {
             jsonrequest.put("Request", "DetailedShoeDisplay");
@@ -102,6 +108,7 @@ public class DetailedShoeDisplay extends AppCompatActivity {
         pollHandler = new Handler();
         pollingTimer = new Timer();
         pollingTask = new Thread(new GetDetailedShoeInfoTask(detailedShoeDisplay_request));
+        pollingTask.setDaemon(true);
         TimerTask poller = new TimerTask() {
             @Override
             public void run() {
@@ -110,9 +117,6 @@ public class DetailedShoeDisplay extends AppCompatActivity {
             }
         };
         pollingTimer.schedule(poller, 0, POLLING_PERIOD);
-
-        // Set up the spinner objects
-        spinnerSetup();
     }
 
     @Override
@@ -203,27 +207,28 @@ public class DetailedShoeDisplay extends AppCompatActivity {
     // For the current size configuration, check if there's a shoe in the list that matches.
     // Also sets the current bar code
     private int checkShoeInList() {
-        int i = -1;
-        for (i = 0; i < availDetails.size(); i++) {
+        for (int i = 0; i < availDetails.size(); i++) {
             // compare current configuration with the current availDetails item
             ShoeInfo si = availDetails.get(i);
-            String selectCountrySize = si.getSize()[currentCountryIndex];
+            String selectCountrySize = (si.getSize())[currentCountryIndex];
             if (si.getSex().equals(currentSex) && selectCountrySize.equals(currentSize)) {
                 currentBarcode = si.getBarcode();
                 return i;
             }
         }
         currentBarcode = "";
-        return i;
+        return -1;
     }
 
-    // TODO: Handle the case where the barcode is not in the list. Availability should be 0.
     private void availabilityUpdate() {
         // Only need to send an update if the current shoe is in the list
         // Otherwise it's obvious that there's no availability and we can set it to 0 immediately
         if (checkShoeInList() != -1) {
             JSONObject jsonrequest = new JSONObject();
             try {
+                System.out.println("==========================================");
+                System.out.println("There's an available shoe to request!!!");
+                System.out.println("==========================================");
                 jsonrequest.put("Request", "AvailabilityUpdate");
                 jsonrequest.put("Barcode", currentBarcode);
                 SocketConnection.writeToSocket(jsonrequest.toString());
@@ -244,11 +249,14 @@ public class DetailedShoeDisplay extends AppCompatActivity {
     }
 
     // Send request to order a shoe (restock if in admin mode)
-    // Shouldn't need to update availability, background task will update for me
     public void OrderButtonClick(View v) {
-        if (!MainDisplay.ADMIN_MODE && availabilityText.getText().equals("0")) {
-            return;
-        }
+        // Get latest availability
+        availabilityUpdate();
+        // If we're ordering and the current shoe is unavailable, don't send order request
+        if (!MainDisplay.ADMIN_MODE && availabilityText.getText().equals("0")) { return; }
+        // If we're restocking and the current shoe has no barcode, don't send restock request
+        if (MainDisplay.ADMIN_MODE && currentBarcode.equals("")) { return; }
+
         JSONObject jsonrequest = new JSONObject();
         try {
             jsonrequest.put("Request", MainDisplay.ADMIN_MODE ? "Restock" : "Order");
@@ -262,25 +270,46 @@ public class DetailedShoeDisplay extends AppCompatActivity {
 
     private class GetDetailedShoeInfoTask implements Runnable {
         private String request;
-
         public GetDetailedShoeInfoTask(String request) {
             this.request = request;
         }
+
         public void run() {
             SocketConnection.writeToSocket(request);
             try {
                 String jsonDetailedShoeDisplay = SocketConnection.messageBuffer.take();
                 System.out.println("Detailed JSON: " + jsonDetailedShoeDisplay);
                 // TODO: Fill up the availDetails arraylist
-
+                JSONObject msg = (JSONObject) new JSONTokener(jsonDetailedShoeDisplay).nextValue();
+                String msgType = msg.getString("Type");
+                if (msgType.equals("DetailedShoeDisplay")) {
+                    JSONArray jsonshoeList = msg.getJSONArray("Shoes");
+                    availDetails.clear();
+                    for (int i = 0; i < jsonshoeList.length(); i++) {
+                        JSONObject jsonshoe = jsonshoeList.getJSONObject(i);
+                        String jsonbarcode = jsonshoe.getString("Barcode");
+                        JSONArray jsonsizes = jsonshoe.getJSONArray("Size");
+                        // Expecting 3 sizes. Not the greatest design.
+                        String[] sizes = new String[3];
+                        sizes[0] = jsonsizes.get(0).toString();
+                        sizes[1] = jsonsizes.get(1).toString();
+                        sizes[2] = jsonsizes.get(2).toString();
+                        String jsonsex = jsonshoe.getString("Sex");
+                        ShoeInfo si = new ShoeInfo(jsonbarcode, sizes, jsonsex);
+                        availDetails.add(i, si);
+                    }
+                }
 
                 // TODO: Send out availability update and handle it
                 // I think the best way to handle the requests (for now) is do everything sequentially
                 // That way we sort of guarantee a certain order of data arrivals
+                // TODO: Check value of availDetails here
                 availabilityUpdate();
-
             } catch (InterruptedException e) {
                 System.out.println("InterruptedException: Error retrieving DetailedShoeDisplay JSON from buffer");
+                e.printStackTrace();
+            } catch (JSONException e) {
+                System.out.println("JSONException: Error handling DetailedShoeDisplay JSON");
                 e.printStackTrace();
             }
         }
@@ -299,7 +328,7 @@ public class DetailedShoeDisplay extends AppCompatActivity {
             sex = "";
         }
 
-        public ShoeInfo(String barcode, String[] sizes, String country, String sex, int availability) {
+        public ShoeInfo(String barcode, String[] sizes, String sex) {
             this.barcode = barcode;
             this.sizes = sizes;
             this.sex = sex;

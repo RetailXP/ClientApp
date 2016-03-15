@@ -14,8 +14,8 @@
     <string name="countryLabel">Country</string>
     <string name="sizeLabel">Size</string>
     <string-array name="sexes">
-        <item>Men\'s</item>
-        <item>Women\'s</item>
+        <item>M</item>
+        <item>F</item>
     </string-array>
     <string-array name="countries">
         <item>US</item>

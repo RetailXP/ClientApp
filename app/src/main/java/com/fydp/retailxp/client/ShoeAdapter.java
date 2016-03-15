@@ -37,7 +37,8 @@ public class ShoeAdapter extends BaseAdapter {
                 // Read in the JSON
                 JSONArray jsonshoeList = msg.getJSONArray("Shoes");
                 // Clear current shoe list and start filling it up with new shoes
-                mShoeList = new ArrayList<>();
+                // mShoeList = new ArrayList<>();
+                mShoeList.clear();
                 for (int i = 0; i < jsonshoeList.length(); i++) {
                     JSONObject jsonshoe = jsonshoeList.getJSONObject(i);
                     String name = jsonshoe.getString("Name");
@@ -141,7 +142,7 @@ public class ShoeAdapter extends BaseAdapter {
 
     // **************************** Custom Functions ****************************
 
-    private ArrayList<Shoe> mShoeList;
+    private ArrayList<Shoe> mShoeList = new ArrayList<>();
 
     // references to our images
     private Integer[] mThumbIds = {
