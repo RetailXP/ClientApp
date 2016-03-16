@@ -8,7 +8,7 @@
     <string name="admin_dialog_cancel">Cancel</string>
     <string name="admin_pw_hash">17e6413b86c551fc9e05d19755d07c13</string>
 
-    <string name="title_activity_detailed_shoe_display">DetailedShoeDisplay</string>
+    <string name="title_activity_detailed_shoe_display">Place Your Order</string>
     <string name="selection">Select your preferences</string>
     <string name="sexLabel">Sex</string>
     <string name="countryLabel">Country</string>

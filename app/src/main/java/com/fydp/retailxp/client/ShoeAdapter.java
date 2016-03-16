@@ -16,6 +16,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -121,10 +122,11 @@ public class ShoeAdapter extends BaseAdapter {
             shoeName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
 
             // Set up shoe price
+            DecimalFormat df = new DecimalFormat("#.00");
             shoePrice = new TextView(mContext);
-            //shoePrice.setText("$100");
-            shoePrice.setText(String.valueOf(shoe.getPrice()));
-            shoeName.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+            System.out.println(String.valueOf(shoe.getPrice()));
+            shoePrice.setText("$" + String.valueOf(df.format(shoe.getPrice())));
+            shoePrice.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
 
             shoeDisplayInfo.addView(shoeImage);
             shoeDisplayInfo.addView(shoeName);
@@ -135,7 +137,10 @@ public class ShoeAdapter extends BaseAdapter {
         }
         //imageView.setImageResource(mThumbIds[position]);
 
-
+        // Set padding for the gridview items, need to do conversion first
+        float scale = mContext.getResources().getDisplayMetrics().density;
+        int dpAsPixels = (int)(16*scale+0.5f);
+        shoeDisplayInfo.setPadding(dpAsPixels,dpAsPixels,dpAsPixels,dpAsPixels);
         //return imageView;
         return shoeDisplayInfo;
     }

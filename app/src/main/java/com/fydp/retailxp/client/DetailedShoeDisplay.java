@@ -79,7 +79,7 @@ public class DetailedShoeDisplay extends AppCompatActivity {
 
         TextView priceView = (TextView) findViewById(R.id.priceDetail);
         DecimalFormat df = new DecimalFormat("#.00");
-        priceView.setText(String.valueOf(df.format(intent.getDoubleExtra(MainDisplay.SHOE_PRICE, 0.00))));
+        priceView.setText("$" + String.valueOf(df.format(intent.getDoubleExtra(MainDisplay.SHOE_PRICE, 0.00))));
 
         ImageView shoeImageView = (ImageView) findViewById(R.id.imageDetail);
         shoeImageView.setImageResource(intent.getIntExtra(MainDisplay.SHOE_IMG, 0));
